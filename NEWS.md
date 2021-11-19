@@ -89,6 +89,20 @@ Standard library changes
 
 #### LinearAlgebra
 
+* The standard library `LinearAlgebra.jl` is now completely independent of `SparseArrays.jl`,
+  both in terms of the source code as well as unit testing ([#43127]). As a consequence,
+  sparse arrays are no longer (silently) returned by methods from `LinearAlgebra` applied
+  to `Base` or `LinearAlgebra` objects. Specifically, this results in the following breaking
+  changes:
+
+  * Concatenations involving special "sparse" matrices (`*diagonal`) now return dense matrices;
+    As a consequence, the `D1` and `D2` fields of `SVD` objects, constructed upon `getproperty`
+    calls are now dense matrices.
+  * 3-arg `similar(::SpecialSparseMatrix, ::Type, ::Dims)` returns a dense zero matrix.
+    As a consequence, products of bi-, tri- and symmetric tridiagonal matrices with each
+    other result in dense output. Moreover, constructing 3-arg similar matrices of special
+    "sparse" matrices of (nonstatic) matrices now fails for the lack of `zero(::Type{Matrix{T}})`.
+
 #### Markdown
 
 #### Printf
@@ -112,6 +126,12 @@ Standard library changes
   to allow any compatible methods.
 
 #### SparseArrays
+
+* New sparse concatenation functions `sparse_hcat`, `sparse_vcat`, and `sparse_hvcat` return
+  `SparseMatrixCSC` output independent from the types of the input arguments. They make
+  concatenation behavior available, in which the presence of some special "sparse" matrix
+  argument resulted in sparse output by multiple dispatch. This is no longer possible after
+  making `LinearAlgebra.jl` independent from `SparseArrays.jl` ([#43127]).
 
 #### Dates
 
