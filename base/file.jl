@@ -441,7 +441,7 @@ julia> rm("goodbye.txt");
 """
 function mv(src::AbstractString, dst::AbstractString; force::Bool=false)
     checkfor_mv_cp_cptree(src, dst, "moving"; force=force)
-    rename(src, dst)
+    rename(src, dst; atomic=false)
     dst
 end
 
@@ -1126,13 +1126,30 @@ function unlink(p::AbstractString)
     nothing
 end
 
-# For move command
-function rename(src::AbstractString, dst::AbstractString; force::Bool=false)
-    err = ccall(:jl_fs_rename, Int32, (Cstring, Cstring), src, dst)
-    # on error, default to cp && rm
+"""
+    rename(oldpath::AbstractString, newpath::AbstractString)
+
+Change the name of a file from `oldpath` to `newpath`. If `newpath` is an existing file it may be replaced.
+Equivalent to [rename(2)](https://man7.org/linux/man-pages/man2/rename.2.html).
+Throws an `IOError` on failure.
+
+OS-specific restrictions may apply when `oldpath` and `newpath` are in different directories.
+
+See also: [`mv`](@ref).
+
+!!! compat "Julia 1.12"
+    This method was added in Julia 1.12.
+"""
+function rename(oldpath::AbstractString, newpath::AbstractString; force::Bool=false, atomic::Bool=true)
+    err = ccall(:jl_fs_rename, Int32, (Cstring, Cstring), oldpath, newpath)
+    # on error, default to cp && rm if atomic is false
     if err < 0
-        cp(src, dst; force=force, follow_symlinks=false)
-        rm(src; recursive=true)
+        if !atomic
+            cp(oldpath, newpath; force=force, follow_symlinks=false)
+            rm(oldpath; recursive=true)
+        else
+            uv_error("rename($(repr(oldpath)), $(repr(newpath)))", err)
+        end
     end
     nothing
 end

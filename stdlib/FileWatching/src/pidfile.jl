@@ -301,7 +301,7 @@ function tryrmopenfile(path::String)
                     "\$", _rand_filename(), rmname, ".deleted")
                 ispath(rmpath) || break
             end
-            rename(path, rmpath)
+            rename(path, rmpath; atomic=false)
             path = rmpath
         catch ex
             isa(ex, IOError) || rethrow(ex)

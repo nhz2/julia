@@ -3047,7 +3047,9 @@ function compilecache(pkg::PkgId, path::String, internal_stderr::IO = stderr, in
                 end
             end
             # this is atomic according to POSIX (not Win32):
-            rename(tmppath, cachefile; force=true)
+            # But this is only atomic if rename succeeds and doesn't
+            # Fallback to cp and rm
+            rename(tmppath, cachefile; force=true, atomic=false)
             return cachefile, ocachefile
         end
     finally
@@ -3066,7 +3068,7 @@ end
 
 function rename_unique_ocachefile(tmppath_so::String, ocachefile_orig::String, ocachefile::String = ocachefile_orig, num = 0)
     try
-        rename(tmppath_so, ocachefile; force=true)
+        rename(tmppath_so, ocachefile; force=true, atomic=false)
     catch e
         e isa IOError || rethrow()
         # If `rm` was called on a dir containing a loaded DLL, we moved it to temp for cleanup
