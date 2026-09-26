@@ -11,6 +11,8 @@ New language features
 * `ᵅ` (U+U+1D45), `ᵋ` (U+1D4B), `ᶲ` (U+1DB2), `˱` (U+02F1), `˲` (U+02F2), and `ₔ` (U+2094) can now also be used as
   operator suffixes, accessible as `\^alpha`, `\^epsilon`, `\^ltphi`, `\_<`, `\_>`, and `\_schwa` at the REPL
   ([#60285]).
+* Latex expansions can now be searched like `\?search<tab>` to show all symbols *containing* rather than starting
+    with the search string ([#61464]).
 * The `@label` macro can now create labeled blocks that can be exited early with `break name [value]`. Use
   `@label name expr` for named blocks or `@label expr` for anonymous blocks. Anonymous `@label` blocks
   participate in the default break scope: a plain `break` or `break _` exits the innermost breakable scope,
@@ -220,6 +222,10 @@ Standard library changes
 * The `Precompiling` messages printed while loading name packages without their uuid when the
   name is unambiguous in the environment, name extensions by their parent package, and say which
   dependency is already loaded at a different version when that is why a cache was not reused ([#63185]).
+* Precompile cache file names now also include the `environment_id` that Pkg records in the manifest
+  (the project uuid, or a generated one), so containers sharing a depot with different projects mounted
+  at the same path keep their caches from overwriting each other. Loading is unaffected, as it checks
+  file contents rather than names ([#63268]).
 
 #### JuliaSyntaxHighlighting
 
