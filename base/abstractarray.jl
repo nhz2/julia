@@ -685,6 +685,47 @@ isstrided(::Type{Union{}}) = false
 isstrided(A::AbstractArray) = isstrided(typeof(A))
 
 """
+    Base.densedim(type)::Int
+
+Return a dimension `d` along which arrays of this [`isstrided`](@ref Base.isstrided) array type
+store isbits elements with the same spacing as an [`Array`](@ref) does: for every array `A` of
+this type with element type `T`, `stride(A, d) * Base.elsize(typeof(A)) == Base.elsize(Array{T})`.
+Return `0` if no such dimension is known, including for zero-dimensional arrays, which have
+no dimensions.
+
+Array wrappers compute this from their parent. For example, [`PermutedDimsArray`](@ref)
+permutes it, and [`reinterpret`](@ref) uses it to decide whether the reinterpreted array is
+strided.
+
+Defaults to `1` for [`Base.isdense`](@ref) array types whose arrays all have at least one
+dimension, and `0` otherwise.
+
+# Examples
+```jldoctest
+julia> A = zeros(3, 4);
+
+julia> Base.densedim(A)
+1
+
+julia> Base.densedim(PermutedDimsArray(A, (2, 1)))
+2
+
+julia> Base.densedim(view(A, 2, :))
+0
+```
+
+!!! compat "Julia 1.14"
+    This function requires at least Julia 1.14.
+"""
+densedim(::Type{A}) where {A<:AbstractArray} = isdense(A) && _hasdims(A) ? 1 : 0
+densedim(::Type{Union{}}) = 0
+densedim(A::AbstractArray) = densedim(typeof(A))
+
+# Whether all arrays of this type have at least one dimension
+_hasdims(::Type{<:AbstractArray}) = false
+_hasdims(::Type{<:AbstractArray{<:Any,N}}) where {N} = N::Int > 0
+
+"""
     Base._islinearstrided_or_trivial(type)::Bool
 
 Check the [`Base.islinearstrided`](@ref) trait. Also return `true` for strided zero- and one-dimensional arrays,

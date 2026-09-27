@@ -218,16 +218,29 @@ function isstrided(::Type{<:ReinterpretArray{T,N,S,P,IsReshaped}}) where {T,N,S,
     if els == elp
         return true
     end
+    # `strides` divides the parent's byte strides (`strides(parent) .* elsize(P)`)
+    # by `els`; that division is only guaranteed to be exact if the parent's
+    # element size is a multiple of `els`.
     if IsReshaped && els < elp
-        # `strides` divides the parent's byte strides (`strides(parent) .* elsize(P)`)
-        # by `els`; that division is only guaranteed to be exact if the parent's
-        # element size is a multiple of `els`.
         return iszero(elsize(P) % els)
     end
-    # Unknown if parent is contiguous in the 1st dimension.
-    return false
+    # Otherwise `strides` also requires the parent's first dimension to have a byte stride
+    # of `elp`, and only divides the byte strides of the remaining dimensions.
+    densedim(P) == 1 || return false
+    return ndims(P) == 1 || iszero(elsize(P) % els)
 end
 isdense(::Type{<:ReinterpretArray{T,N,S,P}}) where {T,N,S,P} = isdense(P)
+function densedim(::Type{A}) where {T,N,S,P,IsReshaped,A<:ReinterpretArray{T,N,S,P,IsReshaped}}
+    N == 0 && return 0
+    isdense(A) && return 1
+    isstrided(A) || return 0
+    els::Int, elp::Int = aligned_sizeof(T), aligned_sizeof(S)
+    # With equal element sizes, `strides` and `elsize` are the parent's.
+    els == elp && return densedim(P)
+    # Otherwise `strides(A)[1] == 1` and `elsize(A) == els`, unless reshaping removed the
+    # parent's first dimension.
+    return IsReshaped && els > elp ? 0 : 1
+end
 
 function strides(a::ReinterpretArray{T,<:Any,S,<:AbstractArray{S},IsReshaped}) where {T,S,IsReshaped}
     _checkcontiguous(Bool, a) && return size_to_strides(1, size(a)...)

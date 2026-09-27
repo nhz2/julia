@@ -71,6 +71,7 @@ Base.strides
 Base.isstrided
 Base.islinearstrided
 Base.isdense
+Base.densedim
 Base.isunsafeloadable
 Base.isunsafestorable
 ```

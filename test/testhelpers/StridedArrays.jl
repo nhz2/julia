@@ -32,15 +32,22 @@ end
 
 function check_strided_traits(a::AbstractArray{T,N}) where {T,N}
     for trait in (Base.isstrided, Base.islinearstrided, Base.isdense,
-                  Base.isunsafeloadable, Base.isunsafestorable)
+                  Base.isunsafeloadable, Base.isunsafestorable, Base.densedim)
         @test trait(typeof(a)) === trait(a)
     end
+    d = Base.densedim(a)
+    @test d in 0:N
+    Base.isdense(a) && N > 0 && @test d == 1
+    iszero(d) || @test Base.isstrided(a)
     isbitstype(T) || return
     Base.isdense(a) && @test Base.islinearstrided(a)
     Base.islinearstrided(a) && @test Base.isstrided(a)
     Base.isstrided(a) || return
     @test strides(a) isa NTuple{N, Int}
     @test Base.elsize(a) isa Int
+    # Unlike the other layout traits, `densedim` constrains the stride even if the dim has
+    # a single index, since `reinterpret` checks it exactly.
+    iszero(d) || @test strides(a)[d] * Base.elsize(a) == Base.elsize(Array{T})
     # A dim with a single index contributes nothing to any element address, so
     # its stride is unconstrained by the layout traits; only check longer dims.
     if Base.isdense(a)

@@ -428,11 +428,36 @@ end
 function isdense(::Type{<:FastContiguousSubArray{T,N,P}}) where {T,N,P}
     isdense(P)
 end
+function densedim(::Type{A}) where {T,N,P,I<:Tuple{Vararg{StridedSubArrayIndex}},A<:SubArray{T,N,P,I}}
+    N == 0 && return 0
+    isdense(A) && return 1
+    isstrided(A) || return 0
+    return _subarray_densedim(densedim(P)::Int, 0, I)
+end
+
+# The dimension of a view with index types `I` that has the same stride as dimension `d` of
+# the parent, or 0 if there is none. `n` counts the view dimensions before those of `I`.
+_subarray_densedim(d::Int, n::Int, ::Type{Tuple{}}) = 0
+function _subarray_densedim(d::Int, n::Int, ::Type{I}) where {I<:Tuple}
+    I1 = fieldtype(I, 1)
+    d == 1 || return _subarray_densedim(d - 1, n + ndims(I1), tuple_type_tail(I))
+    # `substrides` keeps the parent's stride for the first dimension of a unit range,
+    # scales it by the step of other ranges, and drops it for scalars.
+    return I1 <: Union{AbstractUnitRange, ReshapedUnitRange} && ndims(I1) > 0 ? n + 1 : 0
+end
 
 isunsafeloadable(::Type{<:ReshapedArray{T,N,P}}) where {T,N,P} = isunsafeloadable(P)
 isunsafestorable(::Type{<:ReshapedArray{T,N,P}}) where {T,N,P} = isunsafestorable(P)
 islinearstrided(::Type{<:ReshapedArray{T,N,P}}) where {T,N,P} = _islinearstrided_or_trivial(P)
 isdense(::Type{<:ReshapedArray{T,N,P}}) where {T,N,P} = isdense(P)
+function densedim(::Type{A}) where {T,N,P,A<:ReshapedArray{T,N,P}}
+    N == 0 && return 0
+    isdense(A) && return 1
+    # If the parent has one dimension, `strides(A)` is
+    # `size_to_strides(stride(parent(A), 1), size(A)...)`. For parents with more dimensions,
+    # the first stride may come from a later dimension if the leading dimensions have size 1.
+    return ndims(P) == 1 && densedim(P) == 1 ? 1 : 0
+end
 
 # Contiguous with the exact byte layout of the equivalent Array and matching elsize
 _checkcontiguous(::Type{Bool}, A::AbstractArray{T}) where {T} =

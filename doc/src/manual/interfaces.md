@@ -410,6 +410,7 @@ the array's storage, and optionally, access to that storage through a pointer.
 | `stride(A, i::Int)`                             |     `strides(A)[i]`                    | Return the distance in storage (in number of elements) between adjacent elements in dimension i.      |
 | `Base.islinearstrided(::Type{<:A})`             |     `Base.isdense(A)`                  | Return `true` to declare that the array additionally has evenly spaced elements in column-major order. Implies `Base.isstrided`. |
 | `Base.isdense(::Type{<:A})`                     |     `A <: DenseArray`                  | Return `true` to declare that the array additionally has the same layout as an `Array`. Implies `Base.islinearstrided` and provides default `strides` and `Base.elsize` definitions. |
+| `Base.densedim(::Type{<:A})`                    |     `Base.isdense(A) && ndims(A) > 0 ? 1 : 0` | Return a dimension `d` with `stride(A, d) * Base.elsize(A) == Base.elsize(Array{eltype(A)})`, or `0` if none is known. |
 
 These methods only describe where each element is located relative to the others: the element
 at indices `I` is stored at a byte offset of

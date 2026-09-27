@@ -38,6 +38,7 @@ public
     isstrided,
     islinearstrided,
     isdense,
+    densedim,
     isunsafeloadable,
     isunsafestorable,
     unsetindex!,

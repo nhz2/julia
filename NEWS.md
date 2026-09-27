@@ -194,6 +194,10 @@ New library functions
   writing an element through a `Ptr` is equivalent to `getindex` or `setindex!`. A strided array type with
   either trait must also provide a pointer to its elements through `Base.cconvert` and `Base.unsafe_convert`
   ([#60964]).
+* New trait function `Base.densedim` returns a dimension of a strided array type along which elements
+  are spaced like in an `Array`, or `0` if none is known. `PermutedDimsArray`, `view`, `reshape`, and
+  `reinterpret` compute it from their parent, which lets `reinterpret` of more non-dense arrays be
+  `Base.isstrided`.
 
 New library features
 --------------------

@@ -76,6 +76,7 @@ Base.isunsafestorable(::Type{WrapperArray{T,N,A}}) where {T,N,A<:AbstractArray{T
 Base.isdense(::Type{WrapperArray{T,N,A}}) where {T,N,A<:AbstractArray{T,N}} = Base.isdense(A)
 Base.islinearstrided(::Type{WrapperArray{T,N,A}}) where {T,N,A<:AbstractArray{T,N}} = Base.islinearstrided(A)
 Base.isstrided(::Type{WrapperArray{T,N,A}}) where {T,N,A<:AbstractArray{T,N}} = Base.isstrided(A)
+Base.densedim(::Type{WrapperArray{T,N,A}}) where {T,N,A<:AbstractArray{T,N}} = Base.densedim(A)
 
 # An array type with heterogenous axis types
 struct TestAxis{N}

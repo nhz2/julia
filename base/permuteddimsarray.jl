@@ -75,6 +75,11 @@ end
 function Base.islinearstrided(::Type{<:PermutedDimsArray{T, N, perm, <:Any, P}}) where {T,N,perm,P}
     Base._islinearstrided_or_trivial(P) && ntuple(identity, Val(N)) === perm
 end
+function Base.densedim(::Type{<:PermutedDimsArray{T, N, perm, iperm, P}}) where {T,N,perm,iperm,P}
+    d = Base.densedim(P)::Int
+    # `strides(A)[iperm[d]] == strides(parent(A))[d]`
+    d in 1:N ? iperm[d] : 0
+end
 
 @inline function Base.getindex(A::PermutedDimsArray{T,N,perm,iperm}, I::Vararg{Int,N}) where {T,N,perm,iperm}
     @boundscheck checkbounds(A, I...)

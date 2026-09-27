@@ -1377,6 +1377,78 @@ end
     check_strided_get(view(Base.PermutedDimsArray(view(NonMemStridedArray(rand(10, 10)), 2:2:6, 1:3:9), (2,1)), 2:3, 3:-1:1))
 end
 
+@testset "densedim" begin
+    A = rand(Int32, 3, 4, 5)
+    @test Base.densedim(A) === Base.densedim(typeof(A)) === 1
+    @test Base.densedim(fill(1.0)) === 0
+    @test Base.densedim(Vector{Int}) === 1
+    @test Base.densedim(Array{Int,0}) === 0
+    @test Base.densedim(Array{Int}) === 0
+    @test Base.densedim(Memory{Int}(undef, 2)) === 1
+    @test Base.densedim(Union{}) === 0
+    @test Base.densedim(1:3) === 0
+    @test Base.densedim(Strider(vec(A), (1, 3), (3, 4))) === 0
+    @test Base.densedim(WrapperArray(A)) === 1
+    for perm in ((1, 2, 3), (2, 1, 3), (3, 1, 2), (2, 3, 1))
+        P = PermutedDimsArray(A, perm)
+        @test Base.densedim(P) == findfirst(==(1), perm)
+        @test Base.densedim(PermutedDimsArray(P, invperm(perm))) == 1
+        check_strided_traits(P)
+    end
+    @test Base.densedim(PermutedDimsArray(fill(1.0), ())) == 0
+
+    P = PermutedDimsArray(A, (2, 1, 3))
+    for (a, d) in (
+            # views keep the dim if it is indexed by a unit range
+            view(A, :, 2, 3) => 1,
+            view(A, 2:3, :, 1) => 1,
+            view(A, 2, 3, 4) => 0,
+            view(A, 2, :, :) => 0,
+            view(A, 1:2:3, :, :) => 0,
+            view(A, 3:-1:1, :, :) => 0,
+            view(A, [1, 2], :, :) => 0,
+            view(P, 1, :, 2) => 1,
+            view(P, :, 1:2, :) => 2,
+            view(P, :, 1, :) => 0,
+            view(P, 1, 2, 3) => 0,
+            view(P, 1, reshape(1:3, 3, 1), :) => 1,
+            view(P, :, reshape(1:3, 3, 1), :) => 2,
+            view(P, :, reshape(1:2:3, 2, 1), :) => 0,
+            # reshape keeps the dim of parents with at most one dim
+            reshape(view(P, 1, :, 2), 1, 3) => 1,
+            reshape(view(A, 1, :, 2), 2, 2) => 0,
+            reshape(view(A, 1:2, :, 2), 8) => 0,
+            reshape(P, 12, 5) => 0,
+            # reinterpret with equal element sizes keeps the dim
+            reinterpret(Float32, P) => 2,
+            reinterpret(reshape, Float32, P) => 2,
+            reinterpret(Float32, view(A, 2, :, :)) => 0,
+            # otherwise the first dim is contiguous, unless reshaping removes it
+            reinterpret(Int16, A) => 1,
+            reinterpret(Int16, view(A, 1:2, :, 1)) => 1,
+            reinterpret(reshape, Int16, view(A, 2, :, :)) => 1,
+            reinterpret(Int64, view(P, 1, 1:2, 2)) => 1,
+            reinterpret(reshape, Int64, view(P, 1, 1:2, 2)) => 0,
+            reinterpret(reshape, Int64, view(A, 1:2, :, :)) => 0,
+            reinterpret(Int64, view(A, 1:2, :, 1)) => 0,
+            reinterpret(Int16, view(A, 1:2:3, :, 1)) => 0,
+        )
+        @test Base.densedim(a) == d
+        check_strided_traits(a)
+    end
+    # `densedim` lets `reinterpret` of these non-dense arrays be strided
+    for a in (reinterpret(Int16, view(A, 1:2, :, 1)),
+              reinterpret(Int64, view(P, 1, 1:2, 2)),
+              reinterpret(reshape, Int64, view(P, 1, 1:2, 2)))
+        @test !Base.isdense(parent(a))
+        @test Base.isstrided(a)
+        check_strided_get(a)
+    end
+    # but not if the byte strides of the other dims may not be divisible
+    @test !Base.isstrided(reinterpret(Int64, view(A, 1:2, :, 1)))
+    check_strides_throws("Parent's strides", reinterpret(Int64, view(A, 1:2, :, 1)))
+end
+
 @testset "first/last n elements of $(typeof(itr))" for itr in (collect(1:9),
                                                                [1 4 7; 2 5 8; 3 6 9],
                                                                ntuple(identity, 9))
